@@ -1,5 +1,20 @@
 import axios from "axios";
 import { config } from "./config";
+/**
+ * Backend response'dan array chiqarib oluvchi helper.
+ * Netlify/production'da backend ba'zida paginated object qaytarishi mumkin.
+ */
+export function safeArray<T = any>(res: any): T[] {
+  const raw = res?.data ?? res;
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.content)) return raw.content;  // Spring Page<T>
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw?.items)) return raw.items;
+  if (Array.isArray(raw?.results)) return raw.results;
+  return [];
+}
+
+
 
 /**
  * ✅ Deploy (Netlify) uchun:

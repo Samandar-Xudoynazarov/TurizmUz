@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { usersApi, registrationsApi } from '@/lib/api';
+import { usersApi, registrationsApi , safeArray} from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +45,12 @@ export default function ProfilePage() {
       phone: user.phone || '',
       country: user.country || '',
     });
-    registrationsApi.getByUser(user.id).then((r) => setRegs(r.data || [])).catch(() => {});
+    registrationsApi
+      .getByUser(user.id)
+      .then((r) => {
+        setRegs(safeArray(r));
+      })
+      .catch(() => setRegs([]));
   }, [user, navigate]);
 
   const handleSave = async (e: React.FormEvent) => {

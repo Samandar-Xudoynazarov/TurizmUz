@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { eventsApi, orgsApi } from "@/lib/api";
+import { eventsApi, orgsApi, safeArray } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -342,12 +342,16 @@ export default function IndexPage() {
   useEffect(() => {
     eventsApi
       .getUpcoming()
-      .then((r) => setEvents(r.data || []))
+      .then((r) => {
+        setEvents(safeArray(r));
+      })
       .catch(() => {});
 
     orgsApi
       .getVerified()
-      .then((r) => setOrgs(r.data?.slice?.(0, 4) || []))
+      .then((r) => {
+        setOrgs(safeArray(r).slice(0, 4));
+      })
       .catch(() => {});
   }, []);
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { accommodationsApi } from "@/lib/api";
+import { accommodationsApi , safeArray} from '@/lib/api';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin } from "lucide-react";
@@ -24,7 +24,9 @@ export default function HostelDetailPage() {
     setLoading(true);
     accommodationsApi
       .getHostels()
-      .then((r) => setAll(r.data || []))
+      .then((r) => {
+        setAll(safeArray(r));
+      })
       .finally(() => setLoading(false));
   }, []);
 

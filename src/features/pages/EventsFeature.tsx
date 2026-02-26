@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { eventsApi } from '@/lib/api';
+import { eventsApi, safeArray } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,7 +56,9 @@ export default function EventsPage() {
   useEffect(() => {
     eventsApi
       .getAll()
-      .then((r) => setEvents(r.data || []))
+      .then((r) => {
+        setEvents(safeArray(r));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
