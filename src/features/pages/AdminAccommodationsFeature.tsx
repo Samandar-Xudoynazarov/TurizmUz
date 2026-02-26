@@ -106,30 +106,39 @@ export default function AdminAccommodationsFeature() {
     try {
       // ✅ ketma-ket: avval amenities, keyin hotels, keyin hostels
       const aRes = await amenitiesApi.getAll();
-      setAmenities((aRes.data || []).map((x: any) => ({ id: Number(x.id), name: String(x.name) })));
+      {
+        const list = Array.isArray(aRes.data) ? aRes.data : Array.isArray((aRes as any)?.data?.data) ? (aRes as any).data.data : [];
+        setAmenities(list.map((x: any) => ({ id: Number(x.id), name: String(x.name) })));
+      }
 
       const hRes = await accommodationsApi.getHotels();
-      setHotels(
-        (hRes.data || []).map((x: any) => ({
+      {
+        const list = Array.isArray(hRes.data) ? hRes.data : Array.isArray((hRes as any)?.data?.data) ? (hRes as any).data.data : [];
+        setHotels(
+          list.map((x: any) => ({
           id: Number(x.id),
           name: String(x.name),
           city: x.city,
           address: x.address,
           stars: x.stars,
           images: pickImages(x),
-        })),
-      );
+          })),
+        );
+      }
 
       const sRes = await accommodationsApi.getHostels();
-      setHostels(
-        (sRes.data || []).map((x: any) => ({
+      {
+        const list = Array.isArray(sRes.data) ? sRes.data : Array.isArray((sRes as any)?.data?.data) ? (sRes as any).data.data : [];
+        setHostels(
+          list.map((x: any) => ({
           id: Number(x.id),
           name: String(x.name),
           city: x.city,
           address: x.address,
           images: pickImages(x),
-        })),
-      );
+          })),
+        );
+      }
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Ma'lumotlarni yuklashda xatolik");
     } finally {

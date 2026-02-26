@@ -34,6 +34,7 @@ type EventItem = {
 
 function toArray<T = any>(data: any): T[] {
   if (Array.isArray(data)) return data as T[];
+  if (Array.isArray(data?.data)) return data.data as T[];
   if (Array.isArray(data?.content)) return data.content as T[];
   if (Array.isArray(data?.items)) return data.items as T[];
   return [];

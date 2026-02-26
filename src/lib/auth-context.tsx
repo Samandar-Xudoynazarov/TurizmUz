@@ -76,7 +76,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(savedToken);
       if (savedUser) {
         try {
-          setUser(JSON.parse(savedUser));
+          const parsed = JSON.parse(savedUser);
+
+          // ✅ Defensive: localStorage'dagi user formati turlicha bo‘lishi mumkin
+          // roles string/object bo‘lib qolsa ham, doim string[] ga normallashtiramiz
+          const fixedUser: User = {
+            id: Number(parsed?.id ?? 0),
+            fullName: String(parsed?.fullName ?? ""),
+            email: String(parsed?.email ?? ""),
+            phone: String(parsed?.phone ?? ""),
+            country: String(parsed?.country ?? ""),
+            roles: normalizeRoles(parsed?.roles ?? parsed?.authorities),
+            enabled: Boolean(parsed?.enabled ?? true),
+            organizationId:
+              parsed?.organizationId !== undefined ? Number(parsed.organizationId) : undefined,
+          };
+
+          setUser(fixedUser);
+          localStorage.setItem("user", JSON.stringify(fixedUser));
         } catch {
           localStorage.removeItem("user");
         }

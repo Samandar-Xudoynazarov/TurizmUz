@@ -1,80 +1,121 @@
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  getDay,
+  isSameDay,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
 import type { EventItem } from "../helpers";
 
 type Props = {
-  basePath: string;
-  pendingEvents: EventItem[];
-  approvedEvents: EventItem[];
-  onApprove: (eventId: number) => void;
-  onOpenReject: (eventId: number) => void;
+  allEvents: EventItem[] | unknown; // ✅ runtime’da ham turli kelishi mumkin
+  calMonth: Date;
+  setCalMonth: (d: Date) => void;
+  onOpenEvent: (eventId: number) => void;
 };
 
-export default function EventsTab({ basePath, pendingEvents, approvedEvents, onApprove, onOpenReject }: Props) {
-  return (
-    <div className="space-y-6">
-      {pendingEvents.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-violet-500 rounded-full" />
-            Kutilayotgan eventlar ({pendingEvents.length})
-          </h3>
-          <div className="space-y-3">
-            {pendingEvents.map((ev) => (
-              <Card key={ev.id} className="border-0 shadow-sm border-l-4 border-l-violet-400">
-                <CardContent className="p-5 flex items-center justify-between gap-4">
-                  <Link to={`${basePath}/events/${ev.id}`} className="min-w-0">
-                    <h4 className="font-semibold text-gray-900 hover:underline truncate">{ev.title}</h4>
-                    <p className="text-sm text-gray-500 line-clamp-2">{ev.description}</p>
-                    <p className="text-xs text-gray-400 mt-1 truncate">
-                      {ev.locationName} • {new Date(ev.eventDateTime).toLocaleString()}
-                    </p>
-                    {ev.organizationName ? (
-                      <p className="text-xs text-gray-400 mt-1 truncate">Tashkilot: {ev.organizationName}</p>
-                    ) : null}
-                  </Link>
+const WEEKDAYS = ["Du", "Se", "Cho", "Pa", "Ju", "Sha", "Ya"];
 
-                  <div className="flex gap-2 shrink-0">
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => onApprove(ev.id)}>
-                      <CheckCircle2 className="w-4 h-4 mr-1" />
-                      Tasdiqlash
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => onOpenReject(ev.id)}>
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Rad etish
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+function isValidDate(d: Date) {
+  return !Number.isNaN(d.getTime());
+}
+
+export default function CalendarTab({
+  allEvents,
+  calMonth,
+  setCalMonth,
+  onOpenEvent,
+}: Props) {
+  const safeEvents: EventItem[] = Array.isArray(allEvents) ? (allEvents as EventItem[]) : [];
+
+  const monthStart = startOfMonth(calMonth);
+  const monthEnd = endOfMonth(calMonth);
+  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startDay = getDay(monthStart);
+
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">Barcha tadbirlar kalendari</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCalMonth(subMonths(calMonth, 1))}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            <span className="text-sm font-medium w-32 text-center">
+              {format(calMonth, "MMMM yyyy")}
+            </span>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCalMonth(addMonths(calMonth, 1))}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
-      )}
+      </CardHeader>
 
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasdiqlangan eventlar ({approvedEvents.length})</h3>
-        <div className="space-y-3">
-          {approvedEvents.map((ev) => (
-            <Card key={ev.id} className="border-0 shadow-sm">
-              <CardContent className="p-5 flex items-center justify-between">
-                <Link to={`/events/${ev.id}`} className="min-w-0">
-                  <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                    {ev.title}
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Tasdiqlangan</Badge>
-                  </h4>
-                  <p className="text-sm text-gray-500 line-clamp-2">{ev.description}</p>
-                  <p className="text-xs text-gray-400 mt-1 truncate">
-                    {ev.locationName} • {new Date(ev.eventDateTime).toLocaleString()}
-                  </p>
-                </Link>
-              </CardContent>
-            </Card>
+      <CardContent>
+        <div className="grid grid-cols-7 gap-1">
+          {WEEKDAYS.map((d) => (
+            <div key={d} className="text-center text-xs font-medium text-gray-400 py-2">
+              {d}
+            </div>
           ))}
+
+          {Array.from({ length: startDay === 0 ? 6 : startDay - 1 }).map((_, i) => (
+            <div key={`empty-${i}`} />
+          ))}
+
+          {days.map((day) => {
+            const dayEvents = safeEvents.filter((e) => {
+              const dt = new Date((e as any)?.eventDateTime);
+              if (!isValidDate(dt)) return false;
+              return isSameDay(dt, day);
+            });
+
+            const isToday = isSameDay(day, new Date());
+
+            return (
+              <div
+                key={day.toISOString()}
+                className={`min-h-[80px] p-1 rounded-lg border text-xs ${
+                  isToday ? "border-indigo-300 bg-indigo-50" : "border-gray-100"
+                }`}
+              >
+                <span className={`font-medium ${isToday ? "text-indigo-600" : "text-gray-700"}`}>
+                  {format(day, "d")}
+                </span>
+
+                {Array.isArray(dayEvents) &&
+                  dayEvents.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="mt-0.5 bg-indigo-100 text-indigo-700 rounded px-1 py-0.5 truncate cursor-pointer hover:bg-indigo-200"
+                      title={ev.title}
+                      onClick={() => onOpenEvent(ev.id)}
+                    >
+                      {ev.title}
+                    </div>
+                  ))}
+              </div>
+            );
+          })}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

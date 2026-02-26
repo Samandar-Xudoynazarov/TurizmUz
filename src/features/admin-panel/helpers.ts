@@ -31,6 +31,8 @@ export interface EventItem {
 /** Backend response array yoki {content: []} bo‘lishi mumkin */
 export function toArray<T = any>(data: any): T[] {
   if (Array.isArray(data)) return data as T[];
+  // Axios/Backend ba'zan {data: []} qaytaradi
+  if (Array.isArray(data?.data)) return data.data as T[];
   if (Array.isArray(data?.content)) return data.content as T[];
   if (Array.isArray(data?.items)) return data.items as T[];
   return [];

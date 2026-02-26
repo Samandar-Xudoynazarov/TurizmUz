@@ -77,6 +77,16 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  // ✅ Defensive: Netlify/old localStorage formatda roles string bo‘lib qolishi mumkin
+  const safeRoles: string[] = (() => {
+    const raw: any = (user as any)?.roles;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map(String);
+    if (typeof raw === 'string') return raw.split(/[, ]+/).filter(Boolean).map((r) => r.replace(/^ROLE_/, ''));
+    if (Array.isArray(raw?.authorities)) return raw.authorities.map((a: any) => String(a?.authority ?? a)).map((r) => r.replace(/^ROLE_/, ''));
+    return [];
+  })();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -134,7 +144,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex gap-1">
-                  {user.roles.map((role) => (
+                  {safeRoles.map((role) => (
                     <Badge key={role} variant="secondary" className="text-xs">{role}</Badge>
                   ))}
                 </div>

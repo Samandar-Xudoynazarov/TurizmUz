@@ -37,7 +37,8 @@ export default function HotelsHostelsFeature() {
       try {
         // ✅ ketma-ket: avval hotels, keyin hostels
         const hRes = await accommodationsApi.getHotels();
-        const hotels: HotelLike[] = (hRes.data || []).map((x: any) => ({
+        const hList = Array.isArray(hRes.data) ? hRes.data : Array.isArray((hRes as any)?.data?.data) ? (hRes as any).data.data : [];
+        const hotels: HotelLike[] = hList.map((x: any) => ({
           id: Number(x.id),
           type: 'HOTEL',
           name: String(x.name),
@@ -48,7 +49,8 @@ export default function HotelsHostelsFeature() {
         }));
 
         const sRes = await accommodationsApi.getHostels();
-        const hostels: HotelLike[] = (sRes.data || []).map((x: any) => ({
+        const sList = Array.isArray(sRes.data) ? sRes.data : Array.isArray((sRes as any)?.data?.data) ? (sRes as any).data.data : [];
+        const hostels: HotelLike[] = sList.map((x: any) => ({
           id: Number(x.id),
           type: 'HOSTEL',
           name: String(x.name),
