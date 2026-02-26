@@ -1,0 +1,90 @@
+// Runtime configuration
+let runtimeConfig: {
+  API_BASE_URL: string;
+} | null = null;
+
+// Configuration loading state
+let configLoading = true;
+
+// Default fallback configuration
+const defaultConfig = {
+  // Local dev: /api (Vite proxy). Deploy: VITE_API_BASE_URL ni qo'ying.
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api',
+};
+
+// Function to load runtime configuration
+export async function loadRuntimeConfig(): Promise<void> {
+  try {
+    // Optional: runtime config (Netlify functions / server-side) kerak bo'lsa yoqing
+    const endpoint = import.meta.env.VITE_RUNTIME_CONFIG_ENDPOINT as string | undefined;
+    if (!endpoint) {
+      return;
+    }
+
+    const response = await fetch(endpoint, { credentials: 'include' });
+    if (response.ok) {
+      const contentType = response.headers.get('content-type');
+      // Only parse as JSON if the response is actually JSON
+      if (contentType && contentType.includes('application/json')) {
+        runtimeConfig = await response.json();
+        console.log('Runtime config loaded successfully');
+      } else {
+        console.log(
+          'Config endpoint returned non-JSON response, skipping runtime config'
+        );
+      }
+    }
+  } catch (error) {
+    // ignore -> defaults
+  } finally {
+    configLoading = false;
+  }
+}
+
+// Get current configuration
+export function getConfig() {
+  // If config is still loading, return default config to avoid using stale Vite env vars
+  if (configLoading) {
+    console.log('Config still loading, using default config');
+    return defaultConfig;
+  }
+
+  // First try runtime config (for Lambda)
+  if (runtimeConfig) {
+    console.log('Using runtime config');
+    return runtimeConfig;
+  }
+
+  // Then try Vite environment variables (for local development)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    const viteConfig = {
+      API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+    };
+    console.log('Using Vite environment config');
+    return viteConfig;
+  }
+
+  // Finally fall back to default
+  console.log('Using default config');
+  return defaultConfig;
+}
+
+// Dynamic API_BASE_URL getter - this will always return the current config
+export function getAPIBaseURL(): string {
+  const baseURL = getConfig().API_BASE_URL;
+  // If the base URL is just '/', return empty string to avoid double slashes and incorrect http:// prefix
+  if (baseURL === '/') {
+    return '';
+  }
+  return baseURL;
+}
+
+// For backward compatibility, but this should be avoided
+// Removed static export to prevent using stale config values
+// export const API_BASE_URL = getAPIBaseURL();
+
+export const config = {
+  get API_BASE_URL() {
+    return getAPIBaseURL();
+  },
+};
