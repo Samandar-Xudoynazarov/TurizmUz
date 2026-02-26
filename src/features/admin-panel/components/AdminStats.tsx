@@ -1,6 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CalendarDays, CheckCircle2, Clock3, Users } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Users,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -15,13 +21,14 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { useMemo } from "react";
 
 type Props = {
-  pendingOrgsCount: number;
-  pendingEventsCount: number;
-  verifiedOrgsCount: number;
-  usersCount: number;
-  eventsCount: number;
+  pendingOrgsCount?: number | string | null;
+  pendingEventsCount?: number | string | null;
+  verifiedOrgsCount?: number | string | null;
+  usersCount?: number | string | null;
+  eventsCount?: number | string | null;
 
   // ✅ click actions
   onOpenPendingOrgs?: () => void;
@@ -30,6 +37,20 @@ type Props = {
   onOpenUsers?: () => void;
   onOpenEvents?: () => void;
 };
+
+function toSafeNumber(v: unknown, fallback = 0): number {
+  // number bo‘lsa
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+
+  // string bo‘lsa
+  if (typeof v === "string") {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  // null/undefined/obj bo‘lsa
+  return fallback;
+}
 
 function StatCard({
   title,
@@ -49,15 +70,21 @@ function StatCard({
   const clickable = typeof onClick === "function";
 
   const content = (
-    <Card className={[
-      "border-0 shadow-md rounded-2xl overflow-hidden",
-      clickable ? "cursor-pointer hover:shadow-lg transition" : "",
-    ].join(" ")}>
+    <Card
+      className={[
+        "border-0 shadow-md rounded-2xl overflow-hidden",
+        clickable ? "cursor-pointer hover:shadow-lg transition" : "",
+      ].join(" ")}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-700">{title}</CardTitle>
-            <div className="mt-2 text-3xl font-bold text-slate-900">{value}</div>
+            <CardTitle className="text-sm font-semibold text-slate-700">
+              {title}
+            </CardTitle>
+            <div className="mt-2 text-3xl font-bold text-slate-900">
+              {value}
+            </div>
             {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
           </div>
 
@@ -68,7 +95,9 @@ function StatCard({
 
         {badge ? (
           <div className="mt-3">
-            <Badge className="rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-100">{badge}</Badge>
+            <Badge className="rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-100">
+              {badge}
+            </Badge>
           </div>
         ) : null}
       </CardHeader>
@@ -94,12 +123,14 @@ function StatCard({
 }
 
 export default function AdminStats(props: Props) {
+  // ✅ PRODUCTION SAFE: hammasini numberga aylantiramiz
+  const pendingOrgsCount = toSafeNumber(props.pendingOrgsCount);
+  const pendingEventsCount = toSafeNumber(props.pendingEventsCount);
+  const verifiedOrgsCount = toSafeNumber(props.verifiedOrgsCount);
+  const usersCount = toSafeNumber(props.usersCount);
+  const eventsCount = toSafeNumber(props.eventsCount);
+
   const {
-    pendingOrgsCount,
-    pendingEventsCount,
-    verifiedOrgsCount,
-    usersCount,
-    eventsCount,
     onOpenPendingOrgs,
     onOpenPendingEvents,
     onOpenVerifiedOrgs,
@@ -108,34 +139,55 @@ export default function AdminStats(props: Props) {
   } = props;
 
   // 1) Summary bar chart
-  const barData = [
-    { name: "Pending Orgs", value: pendingOrgsCount },
-    { name: "Pending Events", value: pendingEventsCount },
-    { name: "Verified Orgs", value: verifiedOrgsCount },
-    { name: "Users", value: usersCount },
-    { name: "Events", value: eventsCount },
-  ];
+  const barData = useMemo(
+    () => [
+      { name: "Pending Orgs", value: pendingOrgsCount },
+      { name: "Pending Events", value: pendingEventsCount },
+      { name: "Verified Orgs", value: verifiedOrgsCount },
+      { name: "Users", value: usersCount },
+      { name: "Events", value: eventsCount },
+    ],
+    [pendingOrgsCount, pendingEventsCount, verifiedOrgsCount, usersCount, eventsCount]
+  );
 
   // 2) Donut: Pending vs Approved (approx)
   const approvedApprox = Math.max(eventsCount - pendingEventsCount, 0);
-  const donutData = [
-    { name: "Pending", value: pendingEventsCount },
-    { name: "Approved", value: approvedApprox },
-  ];
+
+  const donutData = useMemo(
+    () => [
+      { name: "Pending", value: pendingEventsCount },
+      { name: "Approved", value: approvedApprox },
+    ],
+    [pendingEventsCount, approvedApprox]
+  );
 
   // 3) Line: demo
-  const totalFlow = pendingOrgsCount + pendingEventsCount + verifiedOrgsCount + usersCount + eventsCount;
-  const lineData = [
-    { name: "Dushanba", value: Math.max(0, Math.round(totalFlow * 0.55)) },
-    { name: "Seshanba", value: Math.max(0, Math.round(totalFlow * 0.62)) },
-    { name: "Chorshanba", value: Math.max(0, Math.round(totalFlow * 0.70)) },
-    { name: "Payshanba", value: Math.max(0, Math.round(totalFlow * 0.78)) },
-    { name: "Juma", value: Math.max(0, Math.round(totalFlow * 0.86)) },
-    { name: "Shanba", value: Math.max(0, Math.round(totalFlow * 0.93)) },
-    { name: "Yakshanba", value: Math.max(0, totalFlow) },
-  ];
+  const totalFlow =
+    pendingOrgsCount +
+    pendingEventsCount +
+    verifiedOrgsCount +
+    usersCount +
+    eventsCount;
+
+  const lineData = useMemo(
+    () => [
+      { name: "Dushanba", value: Math.max(0, Math.round(totalFlow * 0.55)) },
+      { name: "Seshanba", value: Math.max(0, Math.round(totalFlow * 0.62)) },
+      { name: "Chorshanba", value: Math.max(0, Math.round(totalFlow * 0.7)) },
+      { name: "Payshanba", value: Math.max(0, Math.round(totalFlow * 0.78)) },
+      { name: "Juma", value: Math.max(0, Math.round(totalFlow * 0.86)) },
+      { name: "Shanba", value: Math.max(0, Math.round(totalFlow * 0.93)) },
+      { name: "Yakshanba", value: Math.max(0, totalFlow) },
+    ],
+    [totalFlow]
+  );
 
   const pieColors = ["#6366F1", "#22C55E"]; // indigo, green
+
+  // ✅ UZOQKA XAVFSIZ: data array bo‘lmasa ham yiqilmasin
+  const safeDonutData = Array.isArray(donutData) ? donutData : [];
+  const safeBarData = Array.isArray(barData) ? barData : [];
+  const safeLineData = Array.isArray(lineData) ? lineData : [];
 
   return (
     <div className="space-y-6">
@@ -188,12 +240,16 @@ export default function AdminStats(props: Props) {
         {/* Bar */}
         <Card className="border-0 shadow-md rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-slate-900">Umumiy statistikalar (Bar)</CardTitle>
-            <div className="text-xs text-slate-500">Kutilayotgan / tasdiqlangan / umumiy</div>
+            <CardTitle className="text-base text-slate-900">
+              Umumiy statistikalar (Bar)
+            </CardTitle>
+            <div className="text-xs text-slate-500">
+              Kutilayotgan / tasdiqlangan / umumiy
+            </div>
           </CardHeader>
           <CardContent className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData}>
+              <BarChart data={safeBarData}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
@@ -206,22 +262,26 @@ export default function AdminStats(props: Props) {
         {/* Donut */}
         <Card className="border-0 shadow-md rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-slate-900">Event holati (Donut)</CardTitle>
-            <div className="text-xs text-slate-500">Pending vs Approved (taxminiy)</div>
+            <CardTitle className="text-base text-slate-900">
+              Event holati (Donut)
+            </CardTitle>
+            <div className="text-xs text-slate-500">
+              Pending vs Approved (taxminiy)
+            </div>
           </CardHeader>
           <CardContent className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={donutData}
+                  data={safeDonutData}
                   dataKey="value"
                   nameKey="name"
                   innerRadius={55}
                   outerRadius={85}
                   paddingAngle={4}
                 >
-                  {donutData.map((_, i) => (
-                    <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                  {safeDonutData.map((_, i) => (
+                    <Cell key={`cell-${i}`} fill={pieColors[i % pieColors.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -234,12 +294,16 @@ export default function AdminStats(props: Props) {
         {/* Line */}
         <Card className="border-0 shadow-md rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-slate-900">Haftalik trend (Line)</CardTitle>
-            <div className="text-xs text-slate-500">Demo trend (keyin real qilamiz)</div>
+            <CardTitle className="text-base text-slate-900">
+              Haftalik trend (Line)
+            </CardTitle>
+            <div className="text-xs text-slate-500">
+              Demo trend (keyin real qilamiz)
+            </div>
           </CardHeader>
           <CardContent className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={lineData}>
+              <LineChart data={safeLineData}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
